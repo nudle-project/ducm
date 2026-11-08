@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Duckcial Media | Dashboard</title>
+    <style>
+      :root {
+        --bg: #f3f4f6;
+        --panel: #ffffff;
+        --panel-soft: #f9fafb;
+        --panel-alt: #f3f7f5;
+        --text: #111827;
+        --muted: #6b7280;
+        --primary: #16a34a;
+        --primary-soft: #ecfdf5;
+        --primary-deep: #15803d;
+        --border: #e5e7eb;
+        --danger: #b91c1c;
+        --shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+      }
+
+      * { box-sizing: border-box; }
+
+      html { scroll-behavior: smooth; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: linear-gradient(180deg, #f6f7f3 0%, #eef3f0 100%);
+        color: var(--text);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      button, input {
+        font: inherit;
+      }
+
+      .app-shell {
+        max-width: 1420px;
+        margin: 0 auto;
+        padding: 1.5rem 1rem 3rem;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 0.25rem 0 1.5rem;
+      }
+
+      .eyebrow {
+        color: var(--primary-deep);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.72rem;
+        margin: 0 0 0.5rem;
+        font-weight: 700;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 4vw, 3rem);
+        line-height: 1.1;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .logout-btn,
+      .secondary-btn,
+      .reaction-btn,
+      .comment-form button {
+        border-radius: 12px;
+        padding: 0.8rem 1rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        transition: transform 0.15s ease, opacity 0.15s ease;
+      }
+
+      .logout-btn,
+      .secondary-btn {
+        background: #ffffff;
+        color: var(--text);
+      }
+
+      .logout-btn:hover,
+      .secondary-btn:hover,
+      .reaction-btn:hover,
+      .comment-form button:hover {
+        transform: translateY(-1px);
+      }
+
+      .dashboard-layout {
+        display: grid;
+        grid-template-columns: minmax(250px, 320px) minmax(0, 1fr);
+        gap: 1.25rem;
+        align-items: start;
+      }
+
+      .profile-panel,
+      .composer,
+      .post-card {
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .profile-panel {
+        padding: 1.2rem;
+        position: sticky;
+        top: 1rem;
+      }
+
+      .profile-header {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        margin-bottom: 1rem;
+      }
+
+      .avatar {
+        width: 54px;
+        height: 54px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #a7f3d0, #16a34a);
+        color: #062d1d;
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        font-size: 1.2rem;
+      }
+
+      .profile-name {
+        font-size: 1.1rem;
+        font-weight: 800;
+        margin: 0;
+      }
+
+      .profile-handle {
+        margin: 0.25rem 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.7rem;
+        margin-top: 1rem;
+      }
+
+      .stat-item {
+        background: var(--panel-soft);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 0.7rem 0.5rem;
+        text-align: center;
+      }
+
+      .stat-item strong {
+        display: block;
+        font-size: 1.1rem;
+      }
+
+      .stat-item span {
+        color: var(--muted);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .composer {
+        padding: 1.2rem;
+        margin-bottom: 1rem;
+      }
+
+      .composer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .composer-header h2 {
+        margin: 0;
+        font-size: 1.15rem;
+      }
+
+      .upload-box {
+        border: 1.5px dashed var(--border);
+        border-radius: 18px;
+        background: var(--panel-alt);
+        padding: 1.4rem 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.15s ease, background 0.15s ease;
+        display: block;
+      }
+
+      .upload-box:hover {
+        border-color: var(--primary);
+        background: #f0faf4;
+      }
+
+      .upload-box strong {
+        display: block;
+        margin-bottom: 0.35rem;
+        font-size: 1.03rem;
+      }
+
+      .upload-box span {
+        color: var(--muted);
+      }
+
+      .status {
+        margin-top: 0.8rem;
+        font-size: 0.9rem;
+        color: var(--muted);
+        min-height: 1.25rem;
+      }
+
+      .status.error { color: var(--danger); }
+      .status.success { color: var(--primary); }
+
+      .feed-scroller {
+        max-height: calc(100vh - 170px);
+        overflow-y: auto;
+        padding-right: 0.25rem;
+        scroll-snap-type: y proximity;
+      }
+
+      .feed {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+      }
+
+      .post-card {
+        overflow: hidden;
+        scroll-snap-align: start;
+        cursor: pointer;
+        transition: transform 0.18s ease, border-color 0.18s ease;
+      }
+
+      .post-card:hover {
+        transform: translateY(-2px);
+      }
+
+      .media-frame {
+        width: 100%;
+        aspect-ratio: 9 / 16;
+        background: #e5e7eb;
+        overflow: hidden;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .media-frame img,
+      .media-frame video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .post-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.85rem 1rem 0;
+      }
+
+      .post-meta strong {
+        display: block;
+        font-size: 0.96rem;
+      }
+
+      .post-meta span {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--primary-soft);
+        color: var(--primary);
+        border-radius: 999px;
+        padding: 0.4rem 0.7rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+
+      .post-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.9rem 1rem 0.4rem;
+      }
+
+      .reaction-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: #f9fafb;
+        border-color: var(--border);
+        padding: 0.55rem 0.7rem;
+        font-size: 0.85rem;
+      }
+
+      .reaction-btn.dislike { background: #fff7f7; }
+      .reaction-btn:disabled {
+        opacity: 0.7;
+        cursor: default;
+      }
+      .reaction-btn.selected {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+      }
+
+      .metric-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-left: auto;
+        padding: 0.5rem 0.7rem;
+        border-radius: 999px;
+        background: #f5f5f5;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .metric-pill strong { color: var(--text); }
+
+      .comments-wrap {
+        padding: 0 1rem 1rem;
+      }
+
+      .comment-list {
+        display: grid;
+        gap: 0.45rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .comment-item {
+        display: grid;
+        gap: 0.15rem;
+        background: #f9fafb;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.55rem 0.7rem;
+      }
+
+      .comment-item strong { font-size: 0.78rem; }
+      .comment-item span {
+        color: var(--muted);
+        font-size: 0.8rem;
+        line-height: 1.4;
+      }
+
+      .comment-form {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .comment-form input {
+        flex: 1;
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.7rem 0.8rem;
+        background: white;
+      }
+
+      .comment-form button {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+        padding: 0.7rem 0.9rem;
+      }
+
+      .creator-link {
+        appearance: none;
+        background: transparent;
+        border: 0;
+        color: var(--text);
+        font-weight: 700;
+        text-align: left;
+        padding: 0;
+        cursor: pointer;
+      }
+
+      .creator-link:hover {
+        color: var(--primary-deep);
+      }
+
+      .profile-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(17, 24, 39, 0.52);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 30;
+        padding: 1rem;
+      }
+
+      .profile-modal.hidden {
+        display: none;
+      }
+
+      .profile-modal-card {
+        width: min(420px, 100%);
+        background: white;
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        padding: 1.3rem;
+        position: relative;
+      }
+
+      .close-profile {
+        position: absolute;
+        top: 0.8rem;
+        right: 0.8rem;
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        background: white;
+        cursor: pointer;
+        font-size: 1.2rem;
+      }
+
+      .profile-modal-header {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .profile-modal-avatar {
+        width: 56px;
+        height: 56px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #a7f3d0, #16a34a);
+        display: grid;
+        place-items: center;
+        font-weight: 800;
+        color: #062d1d;
+      }
+
+      .profile-meta-line {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 800;
+      }
+
+      .profile-meta-handle {
+        margin: 0.2rem 0 0;
+        color: var(--muted);
+      }
+
+      .profile-modal-stats {
+        margin: 0.25rem 0 1rem;
+        color: var(--muted);
+      }
+
+      .follow-btn {
+        width: 100%;
+        border: none;
+        border-radius: 12px;
+        background: var(--primary);
+        color: white;
+        font-weight: 700;
+        padding: 0.9rem 1rem;
+        cursor: pointer;
+      }
+
+      .follow-btn:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+
+      .empty-state {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: var(--muted);
+        border: 1px dashed var(--border);
+        border-radius: 18px;
+        background: var(--panel);
+      }
+
+      @media (max-width: 980px) {
+        .dashboard-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .profile-panel {
+          position: static;
+        }
+
+        .feed-scroller {
+          max-height: none;
+          overflow: visible;
+        }
+      }
+
+      @media (max-width: 700px) {
+        .app-shell {
+          padding-left: 0.8rem;
+          padding-right: 0.8rem;
+        }
+
+        header {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .header-actions {
+          width: 100%;
+        }
+
+        .header-actions > * {
+          flex: 1;
+          text-align: center;
+        }
+
+        .feed { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header>
+        <div>
+          <p class="eyebrow">Duckcial Media</p>
+          <h1>Welcome back, @duckxcialmedia</h1>
+        </div>
+
+        <div class="header-actions">
+          <button class="secondary-btn" id="uploadTrigger" type="button">Upload</button>
+          <button class="secondary-btn" id="settingsButton" type="button">Settings</button>
+          <button class="logout-btn" id="logoutButton" type="button">Log out</button>
+        </div>
+      </header>
+
+      <div class="dashboard-layout">
+        <aside class="profile-panel">
+          <div class="profile-header">
+            <div class="avatar">D</div>
+            <div>
+              <p class="profile-name" id="profileName">Duckcial User</p>
+              <p class="profile-handle" id="profileHandle">@duckxcialmedia</p>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-item">
+              <strong id="followerCount">0</strong>
+              <span>Followers</span>
+            </div>
+            <div class="stat-item">
+              <strong id="postCount">0</strong>
+              <span>Stories</span>
+            </div>
+            <div class="stat-item">
+              <strong id="viewsCount">0</strong>
+              <span>Views</span>
+            </div>
+          </div>
+        </aside>
+
+        <main>
+          <section class="composer">
+            <div class="composer-header">
+              <h2>Upload a story</h2>
+            </div>
+
+            <label class="upload-box" for="mediaUpload">
+              <strong>Choose image or video</strong>
+              <span>Must be in a 9:16 format</span>
+            </label>
+            <input id="mediaUpload" type="file" accept="image/*,video/*" hidden />
+            <div id="uploadStatus" class="status" aria-live="polite"></div>
+          </section>
+
+          <section class="feed-scroller">
+            <div class="feed" id="feed"></div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div class="profile-modal hidden" id="profileModal" aria-live="polite">
+      <div class="profile-modal-card">
+        <button class="close-profile" id="closeProfileModal" type="button" aria-label="Close profile">×</button>
+        <div class="profile-modal-header">
+          <div class="profile-modal-avatar">D</div>
+          <div>
+            <p class="profile-meta-line" id="profileModalName">Duckcial User</p>
+            <p class="profile-meta-handle" id="profileModalHandle">@duckxcialmedia</p>
+          </div>
+        </div>
+        <p class="profile-modal-stats" id="profileModalStats">0 followers</p>
+        <button id="profileFollowButton" class="follow-btn" type="button">Follow</button>
+      </div>
+    </div>
+
+    <script>
+      function getCookie(name) {
+        const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+        return match ? decodeURIComponent(match[1]) : null;
+      }
+
+      function setCookie(name, value, days = 30) {
+        const expires = new Date(Date.now() + days * 86400000).toUTCString();
+        document.cookie = `${name}=${encodeURIComponent(value)}; path=/; expires=${expires}; SameSite=Lax`;
+      }
+
+      function deleteCookie(name) {
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+      }
+
+      const STORAGE_KEY = 'duckcialSharedPosts';
+      const currentUserData = getCookie('duckcialCurrentUser');
+      const isLoggedIn = getCookie('duckcialLoggedIn') === 'true';
+
+      if (!isLoggedIn || !currentUserData) {
+        window.location.replace('../loggedout/index.html');
+      }
+
+      function getUsers() {
+        try {
+          const parsed = JSON.parse(getCookie('duckcialUsers') || '[]');
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function saveUsers(users) {
+        setCookie('duckcialUsers', JSON.stringify(users), 365);
+      }
+
+      function syncCurrentUser() {
+        const users = getUsers();
+        const currentUser = JSON.parse(currentUserData || '{}');
+        const match = users.find((entry) => entry.email && currentUser.email && entry.email.toLowerCase() === currentUser.email.toLowerCase());
+        if (!match) return currentUser;
+
+        const updated = {
+          id: match.id,
+          name: match.name,
+          handle: match.handle,
+          email: match.email,
+          followers: Number(match.followers || 0)
+        };
+
+        setCookie('duckcialCurrentUser', JSON.stringify(updated), 30);
+        return updated;
+      }
+
+      const user = syncCurrentUser();
+      const handle = user.handle || '@duckxcialmedia';
+      document.querySelector('h1').textContent = 'Welcome back, ' + handle;
+      document.getElementById('profileName').textContent = user.name || 'Duckcial User';
+      document.getElementById('profileHandle').textContent = handle;
+
+      const uploadTrigger = document.getElementById('uploadTrigger');
+      const uploadInput = document.getElementById('mediaUpload');
+      const uploadStatus = document.getElementById('uploadStatus');
+      const feed = document.getElementById('feed');
+
+      function getFollowedUsers() {
+        try {
+          const parsed = JSON.parse(getCookie('duckcialFollowedUsers') || '[]');
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function saveFollowedUsers(ids) {
+        setCookie('duckcialFollowedUsers', JSON.stringify(ids), 365);
+      }
+
+      function openProfile(userId) {
+        const users = getUsers();
+        const identifier = String(userId || '').trim();
+        const profileUser = users.find((entry) => {
+          const matchesId = entry.id && entry.id === identifier;
+          const matchesHandle = entry.handle && entry.handle.toLowerCase() === identifier.toLowerCase();
+          const matchesName = entry.name && entry.name.toLowerCase() === identifier.toLowerCase();
+          return matchesId || matchesHandle || matchesName;
+        });
+        if (!profileUser) return;
+
+        const modal = document.getElementById('profileModal');
+        const nameNode = document.getElementById('profileModalName');
+        const handleNode = document.getElementById('profileModalHandle');
+        const statsNode = document.getElementById('profileModalStats');
+        const followButton = document.getElementById('profileFollowButton');
+
+        const profileKey = profileUser.id || profileUser.handle || profileUser.name;
+        const isCurrentUser = profileUser.email && user.email && profileUser.email.toLowerCase() === user.email.toLowerCase();
+        const followed = getFollowedUsers().includes(profileKey);
+
+        nameNode.textContent = profileUser.name || 'Duckcial User';
+        handleNode.textContent = profileUser.handle || '@duckxcialmedia';
+        statsNode.textContent = `${formatNumber(Number(profileUser.followers || 0))} followers`;
+
+        if (isCurrentUser) {
+          followButton.textContent = 'Your profile';
+          followButton.disabled = true;
+        } else if (followed) {
+          followButton.textContent = 'Following';
+          followButton.disabled = true;
+        } else {
+          followButton.textContent = 'Follow';
+          followButton.disabled = false;
+        }
+
+        followButton.onclick = () => {
+          if (isCurrentUser || followed) return;
+
+          const followedUsers = getFollowedUsers();
+          const targetKey = profileUser.id || profileUser.handle || profileUser.name;
+          if (!followedUsers.includes(targetKey)) {
+            followedUsers.push(targetKey);
+            saveFollowedUsers(followedUsers);
+          }
+
+          const nextUsers = getUsers();
+          const targetIndex = nextUsers.findIndex((entry) => {
+            return (entry.id && entry.id === profileUser.id) ||
+              (entry.handle && entry.handle.toLowerCase() === profileUser.handle.toLowerCase());
+          });
+          if (targetIndex > -1) {
+            nextUsers[targetIndex].followers = Number(nextUsers[targetIndex].followers || 0) + 1;
+            saveUsers(nextUsers);
+
+            const refreshedUser = JSON.parse(getCookie('duckcialCurrentUser') || '{}');
+            if (refreshedUser.email && refreshedUser.email.toLowerCase() === user.email.toLowerCase()) {
+              refreshedUser.followers = Number(nextUsers[targetIndex].followers || 0);
+              setCookie('duckcialCurrentUser', JSON.stringify(refreshedUser), 30);
+            }
+          }
+
+          openProfile(targetKey);
+          renderPosts();
+        };
+
+        modal.classList.remove('hidden');
+      }
+
+      function closeProfile() {
+        document.getElementById('profileModal').classList.add('hidden');
+      }
+
+      function formatTime(date) {
+        return new Date(date).toLocaleString([], {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit'
+        });
+      }
+
+      function formatNumber(value) {
+        return Number(value || 0).toLocaleString();
+      }
+
+      function getPosts() {
+        try {
+          const posts = JSON.parse(getCookie(STORAGE_KEY) || '[]');
+          return Array.isArray(posts) ? posts : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function savePosts(posts) {
+        setCookie(STORAGE_KEY, JSON.stringify(posts), 365);
+      }
+
+      function updateStatus(message, type = '') {
+        uploadStatus.textContent = message;
+        uploadStatus.className = 'status';
+        if (type) {
+          uploadStatus.classList.add(type);
+        }
+      }
+
+      function setMediaType(file) {
+        if (file.type.startsWith('video/')) return 'video';
+        if (file.type.startsWith('image/')) return 'image';
+        return null;
+      }
+
+      function getMediaDimensions(file) {
+        return new Promise((resolve, reject) => {
+          const type = setMediaType(file);
+          if (!type) {
+            reject(new Error('Only image and video files are supported.'));
+            return;
+          }
+
+          if (type === 'image') {
+            const img = new Image();
+            const objectUrl = URL.createObjectURL(file);
+            img.onload = () => {
+              URL.revokeObjectURL(objectUrl);
+              resolve({ width: img.naturalWidth, height: img.naturalHeight });
+            };
+            img.onerror = () => {
+              URL.revokeObjectURL(objectUrl);
+              reject(new Error('Image could not be processed.'));
+            };
+            img.src = objectUrl;
+            return;
+          }
+
+          const videoUrl = URL.createObjectURL(file);
+          const video = document.createElement('video');
+          video.preload = 'metadata';
+          video.onloadedmetadata = () => {
+            URL.revokeObjectURL(videoUrl);
+            resolve({ width: video.videoWidth, height: video.videoHeight });
+          };
+          video.onerror = () => {
+            URL.revokeObjectURL(videoUrl);
+            reject(new Error('Video could not be processed.'));
+          };
+          video.src = videoUrl;
+        });
+      }
+
+      function renderProfileStats(posts) {
+        const totalViews = posts.reduce((sum, item) => sum + Number(item.views || 0), 0);
+        const followerCount = Number(user.followers || 0);
+        document.getElementById('followerCount').textContent = formatNumber(followerCount);
+        document.getElementById('postCount').textContent = formatNumber(posts.length);
+        document.getElementById('viewsCount').textContent = formatNumber(totalViews);
+      }
+
+      function renderPosts() {
+        const posts = getPosts();
+        feed.innerHTML = '';
+        renderProfileStats(posts);
+
+        if (!posts.length) {
+          feed.innerHTML = '<div class="empty-state">No uploads yet. Add a 9:16 image or video to get started.</div>';
+          return;
+        }
+
+        posts.forEach((post) => {
+          const card = document.createElement('article');
+          card.className = 'post-card';
+          card.dataset.postId = post.id;
+
+          const mediaWrapper = document.createElement('div');
+          mediaWrapper.className = 'media-frame';
+
+          if (post.type === 'video') {
+            const video = document.createElement('video');
+            video.src = post.url;
+            video.controls = true;
+            video.playsInline = true;
+            video.muted = true;
+            video.loop = true;
+            video.autoplay = false;
+            mediaWrapper.appendChild(video);
+          } else {
+            const img = document.createElement('img');
+            img.src = post.url;
+            img.alt = 'Uploaded media';
+            mediaWrapper.appendChild(img);
+          }
+
+          const meta = document.createElement('div');
+          meta.className = 'post-meta';
+          const creatorHandle = post.authorHandle || post.uploader || '@duckxcialmedia';
+          const creatorId = post.authorId || creatorHandle;
+          meta.innerHTML = `
+            <div>
+              <button type="button" class="creator-link" data-user-id="${creatorId}"><strong>${creatorHandle}</strong></button>
+              <span>${post.name} • ${formatTime(post.createdAt)}</span>
+            </div>
+            <span class="pill">9:16</span>
+          `;
+
+          const currentVote = (post.reactedBy && post.reactedBy[user.email]) || null;
+          const actions = document.createElement('div');
+          actions.className = 'post-actions';
+          actions.innerHTML = `
+            <button type="button" class="reaction-btn ${currentVote === 'like' ? 'selected' : ''}" data-action="like" data-post-id="${post.id}" aria-pressed="${currentVote === 'like'}">
+              <span>👍</span>
+              <span>${formatNumber(post.likes || 0)}</span>
+            </button>
+            <button type="button" class="reaction-btn dislike ${currentVote === 'dislike' ? 'selected' : ''}" data-action="dislike" data-post-id="${post.id}" aria-pressed="${currentVote === 'dislike'}">
+              <span>👎</span>
+              <span>${formatNumber(post.dislikes || 0)}</span>
+            </button>
+            <div class="metric-pill"><span>Views</span><strong>${formatNumber(post.views || 0)}</strong></div>
+            <div class="metric-pill"><span>Comments</span><strong>${formatNumber((post.comments || []).length)}</strong></div>
+          `;
+
+          const commentsWrap = document.createElement('div');
+          commentsWrap.className = 'comments-wrap';
+          const commentList = document.createElement('div');
+          commentList.className = 'comment-list';
+          (post.comments || []).slice(0, 3).forEach((comment) => {
+            const item = document.createElement('div');
+            item.className = 'comment-item';
+            item.innerHTML = `<strong>${comment.author || '@duckxcialmedia'}</strong><span>${comment.text}</span>`;
+            commentList.appendChild(item);
+          });
+
+          const addCommentRow = document.createElement('div');
+          addCommentRow.className = 'comment-form';
+          addCommentRow.innerHTML = `
+            <input type="text" placeholder="Add a comment" maxlength="120" data-post-id="${post.id}" />
+            <button type="button" data-post-id="${post.id}">Post</button>
+          `;
+
+          commentsWrap.appendChild(commentList);
+          commentsWrap.appendChild(addCommentRow);
+
+          card.appendChild(mediaWrapper);
+          card.appendChild(meta);
+          card.appendChild(actions);
+          card.appendChild(commentsWrap);
+          feed.appendChild(card);
+        });
+
+        const postCards = document.querySelectorAll('.post-card');
+        postCards.forEach((card) => {
+          card.addEventListener('click', (event) => {
+            if (event.target.closest('.reaction-btn') || event.target.closest('.creator-link') || event.target.closest('.comment-form') || event.target.closest('.comment-form button') || event.target.closest('.comment-form input')) {
+              return;
+            }
+
+            const allCards = [...document.querySelectorAll('.post-card')];
+            const currentId = card.dataset.postId;
+            const candidates = allCards.filter((entry) => entry.dataset.postId !== currentId);
+            const target = candidates[Math.floor(Math.random() * candidates.length)] || card;
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          });
+        });
+
+        const creatorLinks = document.querySelectorAll('.creator-link');
+        creatorLinks.forEach((button) => {
+          button.addEventListener('click', () => {
+            const userId = button.dataset.userId || button.textContent.trim();
+            if (userId) openProfile(userId);
+          });
+        });
+
+        const reactionButtons = document.querySelectorAll('.reaction-btn');
+        reactionButtons.forEach((button) => {
+          button.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const action = button.dataset.action;
+            const postId = button.dataset.postId;
+            updateReaction(postId, action);
+          });
+        });
+
+        const commentButtons = document.querySelectorAll('.comment-form button');
+        commentButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            const postId = button.dataset.postId;
+            const input = document.querySelector(`.comment-form input[data-post-id="${postId}"]`);
+            if (input) {
+              addComment(postId, input.value);
+            }
+          });
+        });
+
+        const commentInputs = document.querySelectorAll('.comment-form input');
+        commentInputs.forEach((input) => {
+          input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+              const postId = input.dataset.postId;
+              addComment(postId, input.value);
+            }
+          });
+        });
+
+        observeViews();
+      }
+
+      function updateReaction(postId, action) {
+        const posts = getPosts();
+        const post = posts.find((entry) => entry.id === postId);
+        if (!post) return;
+
+        const currentVote = (post.reactedBy && post.reactedBy[user.email]) || null;
+        if (currentVote === action) {
+          return;
+        }
+
+        if (currentVote === 'like') {
+          post.likes = Math.max(0, Number(post.likes || 0) - 1);
+        }
+        if (currentVote === 'dislike') {
+          post.dislikes = Math.max(0, Number(post.dislikes || 0) - 1);
+        }
+
+        if (action === 'like') {
+          post.likes = Number(post.likes || 0) + 1;
+        }
+        if (action === 'dislike') {
+          post.dislikes = Number(post.dislikes || 0) + 1;
+        }
+
+        post.reactedBy = post.reactedBy || {};
+        post.reactedBy[user.email] = action;
+
+        savePosts(posts);
+        renderPosts();
+      }
+
+      function addComment(postId, text) {
+        const inputValue = (text || '').trim();
+        if (!inputValue) return;
+
+        const posts = getPosts();
+        const post = posts.find((entry) => entry.id === postId);
+        if (!post) return;
+
+        post.comments = Array.isArray(post.comments) ? post.comments : [];
+        post.comments.unshift({
+          id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+          text: inputValue,
+          author: user.handle || '@duckxcialmedia',
+          createdAt: new Date().toISOString()
+        });
+
+        savePosts(posts);
+        renderPosts();
+      }
+
+      function observeViews() {
+        const cards = document.querySelectorAll('.post-card');
+        if (!cards.length) return;
+
+        const viewObserver = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            const postId = entry.target.dataset.postId;
+            const posts = getPosts();
+            const post = posts.find((item) => item.id === postId);
+            if (!post) return;
+
+            const seen = Array.isArray(post.viewedBy) ? post.viewedBy : [];
+            if (seen.includes(user.email)) {
+              viewObserver.unobserve(entry.target);
+              return;
+            }
+
+            post.views = Number(post.views || 0) + 1;
+            post.viewedBy = [...seen, user.email];
+            savePosts(posts);
+            renderPosts();
+            viewObserver.unobserve(entry.target);
+          });
+        }, { threshold: 0.55 });
+
+        cards.forEach((card) => viewObserver.observe(card));
+      }
+
+      async function handleUpload(event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        const type = setMediaType(file);
+        if (!type) {
+          updateStatus('Only image and video uploads are supported.', 'error');
+          event.target.value = '';
+          return;
+        }
+
+        try {
+          const result = await getMediaDimensions(file);
+          const ratio = result.width / result.height;
+          const targetRatio = 9 / 16;
+          const tolerance = 0.18;
+
+          if (Math.abs(ratio - targetRatio) > tolerance) {
+            updateStatus('This file must be in a 9:16 aspect ratio for the best fit on mobile and desktop.', 'error');
+            event.target.value = '';
+            return;
+          }
+
+          const url = URL.createObjectURL(file);
+          const posts = getPosts();
+          const uploader = user.handle || '@duckxcialmedia';
+          const entry = {
+            id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+            name: file.name,
+            type,
+            url,
+            uploader,
+            likes: 0,
+            dislikes: 0,
+            views: 0,
+            comments: [],
+            viewedBy: [],
+            createdAt: new Date().toISOString(),
+            width: result.width,
+            height: result.height,
+            authorId: user.id,
+            authorHandle: user.handle,
+            authorName: user.name,
+            authorEmail: user.email
+          };
+
+          posts.unshift(entry);
+          savePosts(posts);
+          renderPosts();
+          updateStatus('Upload successful. Your 9:16 media is now visible to all Duckcial users.', 'success');
+          event.target.value = '';
+        } catch (error) {
+          updateStatus(error.message || 'Something went wrong while uploading.', 'error');
+          event.target.value = '';
+        }
+      }
+
+      uploadTrigger.addEventListener('click', () => uploadInput.click());
+      uploadInput.addEventListener('change', handleUpload);
+
+      document.getElementById('settingsButton').addEventListener('click', () => {
+        window.location.href = './settings.html';
+      });
+
+      document.getElementById('logoutButton').addEventListener('click', () => {
+        deleteCookie('duckcialLoggedIn');
+        deleteCookie('duckcialCurrentUser');
+        deleteCookie('duckcialUserCookie');
+        deleteCookie('duckcialFollowedUsers');
+        window.location.href = '../loggedout/index.html';
+      });
+
+      document.getElementById('closeProfileModal').addEventListener('click', closeProfile);
+      document.getElementById('profileModal').addEventListener('click', (event) => {
+        if (event.target.id === 'profileModal') {
+          closeProfile();
+        }
+      });
+
+      renderPosts();
+    </script>
+  </body>
+</html>

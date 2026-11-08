@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Duckcial Media</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #111827;
+        --panel-soft: #1f2937;
+        --text: #e5e7eb;
+        --muted: #94a3b8;
+        --primary: #8b5cf6;
+        --primary-strong: #7c3aed;
+        --success: #10b981;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, #020817, #111827 50%, #0f172a);
+        color: var(--text);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      .loading-card {
+        background: rgba(17, 24, 39, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 20px;
+        padding: 2rem 2.5rem;
+        text-align: center;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+      }
+
+      .loading-card h1 {
+        margin: 0 0 0.75rem;
+        font-size: 1.5rem;
+      }
+
+      .loading-card p {
+        margin: 0;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="loading-card">
+      <h1>Checking your session...</h1>
+      <p>Redirecting you to the right experience.</p>
+    </div>
+
+    <script>
+      function getCookie(name) {
+        const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+        return match ? decodeURIComponent(match[1]) : null;
+      }
+
+      const isLoggedIn = getCookie('duckcialLoggedIn') === 'true';
+      window.location.replace(isLoggedIn ? 'loggedin/index.html' : 'loggedout/index.html');
+    </script>
+  </body>
+</html>

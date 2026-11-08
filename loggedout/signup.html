@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Duckcial Media | Sign up</title>
+    <style>
+      :root {
+        --bg: #f3f4f6;
+        --panel: #ffffff;
+        --muted: #6b7280;
+        --primary: #16a34a;
+        --primary-dark: #15803d;
+        --border: #e5e7eb;
+        --danger: #b91c1c;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #f5f5f4;
+        color: #111827;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      .auth-card {
+        width: min(460px, calc(100% - 2rem));
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 2rem 1.5rem;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        margin: 0 0 1rem;
+        padding: 0.45rem 0.75rem;
+        border-radius: 999px;
+        background: #ecfdf5;
+        color: var(--primary-dark);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0 0 0.5rem;
+        font-size: clamp(2rem, 4vw, 2.5rem);
+      }
+
+      p {
+        margin: 0 0 1.25rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      form {
+        display: grid;
+        gap: 1rem;
+      }
+
+      label {
+        display: grid;
+        gap: 0.45rem;
+        color: #374151;
+        font-weight: 600;
+      }
+
+      input {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.9rem 0.95rem;
+        font-size: 1rem;
+        background: #fff;
+      }
+
+      button {
+        border: none;
+        border-radius: 12px;
+        padding: 0.95rem 1.2rem;
+        font-size: 1rem;
+        font-weight: 700;
+        color: white;
+        background: var(--primary);
+        cursor: pointer;
+      }
+
+      .alt {
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .alt a {
+        color: var(--primary-dark);
+        text-decoration: none;
+        font-weight: 700;
+      }
+
+      .status {
+        min-height: 1.2rem;
+        font-size: 0.9rem;
+        color: var(--danger);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="auth-card">
+      <div class="eyebrow">Duckcial Media</div>
+      <h1>Create account</h1>
+      <p>Start sharing short-form content in a 9:16 format.</p>
+
+      <form id="signupForm">
+        <label>
+          Full name
+          <input id="name" type="text" placeholder="Jane Doe" required />
+        </label>
+
+        <label>
+          Handle
+          <input id="handle" type="text" placeholder="@duckxcialmedia" required />
+        </label>
+
+        <label>
+          Email
+          <input id="email" type="email" placeholder="you@example.com" required />
+        </label>
+
+        <label>
+          Password
+          <input id="password" type="password" placeholder="Create a password" required />
+        </label>
+
+        <button type="submit">Create account</button>
+        <div id="status" class="status" aria-live="polite"></div>
+      </form>
+
+      <p class="alt">Already have an account? <a href="./login.html">Log in</a></p>
+    </div>
+
+    <script>
+      function getCookie(name) {
+        const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+        return match ? decodeURIComponent(match[1]) : null;
+      }
+
+      function setCookie(name, value, days = 30) {
+        const expires = new Date(Date.now() + days * 86400000).toUTCString();
+        document.cookie = `${name}=${encodeURIComponent(value)}; path=/; expires=${expires}; SameSite=Lax`;
+      }
+
+      function deleteCookie(name) {
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+      }
+
+      function clearAuthCookies() {
+        deleteCookie('duckcialLoggedIn');
+        deleteCookie('duckcialCurrentUser');
+        deleteCookie('duckcialUserCookie');
+      }
+
+      function getUsers() {
+        try {
+          const value = getCookie('duckcialUsers');
+          const parsed = value ? JSON.parse(value) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function saveUsers(users) {
+        setCookie('duckcialUsers', JSON.stringify(users), 365);
+      }
+
+      if (getCookie('duckcialLoggedIn') === 'true') {
+        window.location.href = '../loggedin/index.html';
+      }
+
+      document.getElementById('signupForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        const name = document.getElementById('name').value.trim();
+        let handle = document.getElementById('handle').value.trim();
+        const email = document.getElementById('email').value.trim().toLowerCase();
+        const password = document.getElementById('password').value.trim();
+        const status = document.getElementById('status');
+
+        if (!name || !handle || !email || !password) {
+          status.textContent = 'Please complete all fields.';
+          return;
+        }
+
+        handle = handle.startsWith('@') ? handle : '@' + handle.replace(/^@+/, '');
+
+        const users = getUsers();
+        const duplicate = users.some((user) => {
+          if (!user || typeof user !== 'object') return false;
+          return user.email && user.email.toLowerCase() === email || user.handle && user.handle.toLowerCase() === handle.toLowerCase();
+        });
+
+        if (duplicate) {
+          status.textContent = 'An account with that email or handle already exists.';
+          return;
+        }
+
+        const newUser = {
+          id: Date.now().toString(),
+          name,
+          handle,
+          email,
+          password,
+          followers: 0
+        };
+
+        users.push(newUser);
+        saveUsers(users);
+
+        const currentUser = {
+          id: newUser.id,
+          name: newUser.name,
+          handle: newUser.handle,
+          email: newUser.email,
+          followers: 0
+        };
+
+        clearAuthCookies();
+        setCookie('duckcialLoggedIn', 'true', 30);
+        setCookie('duckcialCurrentUser', JSON.stringify(currentUser), 30);
+        setCookie('duckcialUserCookie', JSON.stringify(currentUser), 30);
+
+        window.location.replace('../loggedin/index.html');
+      });
+    </script>
+  </body>
+</html>

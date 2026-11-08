@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Duckcial Media | Settings</title>
+    <style>
+      :root {
+        --bg: #f3f4f6;
+        --panel: #ffffff;
+        --muted: #6b7280;
+        --primary: #16a34a;
+        --primary-dark: #15803d;
+        --border: #e5e7eb;
+        --danger: #b91c1c;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #f5f5f4;
+        color: #111827;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      .page {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 3rem;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .eyebrow {
+        color: var(--primary);
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin: 0 0 0.5rem;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 5vw, 2.5rem);
+      }
+
+      .back-btn,
+      .save-btn {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.8rem 1rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .back-btn {
+        background: #fff;
+        color: #111827;
+      }
+
+      .save-btn {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        padding: 1.5rem;
+      }
+
+      form {
+        display: grid;
+        gap: 1rem;
+      }
+
+      label {
+        display: grid;
+        gap: 0.45rem;
+        color: #374151;
+        font-weight: 600;
+      }
+
+      input {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.9rem 0.95rem;
+        font-size: 1rem;
+        background: #fff;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 0.5rem;
+      }
+
+      .danger-actions {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border);
+      }
+
+      .delete-btn {
+        background: #fff;
+        color: var(--danger);
+        border: 1px solid rgba(185, 28, 28, 0.3);
+        border-radius: 12px;
+        padding: 0.8rem 1rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .status {
+        min-height: 1.25rem;
+        color: var(--primary);
+        font-size: 0.9rem;
+      }
+
+      .status.error {
+        color: var(--danger);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="topbar">
+        <div>
+          <p class="eyebrow">Duckcial Media</p>
+          <h1>Settings</h1>
+        </div>
+        <button class="back-btn" id="backButton" type="button">Back to dashboard</button>
+      </div>
+
+      <div class="card">
+        <form id="settingsForm">
+          <label>
+            Full name
+            <input id="name" type="text" placeholder="Jane Doe" required />
+          </label>
+
+          <label>
+            Handle
+            <input id="handle" type="text" placeholder="@duckxcialmedia" required />
+          </label>
+
+          <label>
+            Email
+            <input id="email" type="email" placeholder="you@example.com" required />
+          </label>
+
+          <label>
+            Password
+            <input id="password" type="password" placeholder="New password" required />
+          </label>
+
+          <div class="actions">
+            <button class="save-btn" type="submit">Save changes</button>
+          </div>
+          <div id="status" class="status" aria-live="polite"></div>
+        </form>
+
+        <div class="danger-actions">
+          <button class="delete-btn" id="deleteAccountButton" type="button">Delete account</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function getCookie(name) {
+        const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+        return match ? decodeURIComponent(match[1]) : null;
+      }
+
+      function setCookie(name, value, days = 30) {
+        const expires = new Date(Date.now() + days * 86400000).toUTCString();
+        document.cookie = `${name}=${encodeURIComponent(value)}; path=/; expires=${expires}; SameSite=Lax`;
+      }
+
+      function deleteCookie(name) {
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+      }
+
+      function getUsers() {
+        try {
+          return JSON.parse(getCookie('duckcialUsers') || '[]');
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function getPosts() {
+        try {
+          const posts = JSON.parse(getCookie('duckcialSharedPosts') || '[]');
+          return Array.isArray(posts) ? posts : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function savePosts(posts) {
+        setCookie('duckcialSharedPosts', JSON.stringify(posts), 365);
+      }
+
+      const currentUser = JSON.parse(getCookie('duckcialCurrentUser') || '{}');
+      if (!currentUser || !currentUser.email) {
+        window.location.href = '../loggedout/index.html';
+      }
+
+      const nameInput = document.getElementById('name');
+      const handleInput = document.getElementById('handle');
+      const emailInput = document.getElementById('email');
+      const passwordInput = document.getElementById('password');
+      const status = document.getElementById('status');
+
+      nameInput.value = currentUser.name || '';
+      handleInput.value = currentUser.handle || '@duckxcialmedia';
+      emailInput.value = currentUser.email || '';
+
+      document.getElementById('backButton').addEventListener('click', () => {
+        window.location.href = './index.html';
+      });
+
+      function anonymizeUserContent(email, handle) {
+        const posts = getPosts();
+        const normalizedEmail = (email || '').toLowerCase();
+        const normalizedHandle = (handle || '').toLowerCase();
+
+        const anonymizedPosts = posts.map((post) => {
+          const postAuthorEmail = (post.authorEmail || '').toLowerCase();
+          const postAuthorHandle = (post.authorHandle || '').toLowerCase();
+          const isOwnPost = postAuthorEmail === normalizedEmail || postAuthorHandle === normalizedHandle;
+
+          if (isOwnPost) {
+            post.authorName = 'Anonymous';
+            post.authorHandle = '@anonymous';
+            post.authorEmail = 'anonymous@deleted';
+            post.uploader = '@anonymous';
+            post.name = 'Anonymous post';
+          }
+
+          if (Array.isArray(post.comments)) {
+            post.comments = post.comments.map((comment) => {
+              const commentAuthor = comment.author || '';
+              const commentAuthorEmail = (comment.authorEmail || '').toLowerCase();
+              const commentAuthorHandle = (comment.authorHandle || '').toLowerCase();
+              const isOwnComment = commentAuthorEmail === normalizedEmail || commentAuthorHandle === normalizedHandle || (commentAuthor && commentAuthor.toLowerCase() === normalizedHandle);
+
+              if (isOwnComment) {
+                return {
+                  ...comment,
+                  author: 'Anonymous',
+                  authorEmail: 'anonymous@deleted',
+                  authorHandle: '@anonymous'
+                };
+              }
+
+              return comment;
+            });
+          }
+
+          return post;
+        });
+
+        savePosts(anonymizedPosts);
+      }
+
+      document.getElementById('deleteAccountButton').addEventListener('click', () => {
+        const confirmed = window.confirm('Delete your account? Your posts and comments will stay on Duckcial, but they will be anonymized.');
+        if (!confirmed) return;
+
+        const users = getUsers();
+        const remainingUsers = users.filter((user) => user.email.toLowerCase() !== currentUser.email.toLowerCase());
+        setCookie('duckcialUsers', JSON.stringify(remainingUsers));
+
+        anonymizeUserContent(currentUser.email, currentUser.handle || '@duckxcialmedia');
+
+        deleteCookie('duckcialLoggedIn');
+        deleteCookie('duckcialCurrentUser');
+        deleteCookie('duckcialUserCookie');
+        deleteCookie('duckcialFollowedUsers');
+
+        window.location.href = '../loggedout/index.html';
+      });
+
+      document.getElementById('settingsForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+
+        const name = nameInput.value.trim();
+        let handle = handleInput.value.trim();
+        const email = emailInput.value.trim().toLowerCase();
+        const password = passwordInput.value.trim();
+
+        if (!name || !handle || !email || !password) {
+          status.textContent = 'Please fill in all fields.';
+          status.className = 'status error';
+          return;
+        }
+
+        if (!handle.startsWith('@')) {
+          handle = '@' + handle.replace(/^@+/, '');
+        }
+
+        const users = getUsers();
+        const userIndex = users.findIndex((user) => user.email.toLowerCase() === currentUser.email.toLowerCase());
+
+        if (userIndex === -1) {
+          status.textContent = 'Account not found.';
+          status.className = 'status error';
+          return;
+        }
+
+        const duplicate = users.find((user) => {
+          if (user.email.toLowerCase() === email && user.email.toLowerCase() !== currentUser.email.toLowerCase()) {
+            return true;
+          }
+          if (user.handle.toLowerCase() === handle.toLowerCase() && user.handle.toLowerCase() !== (currentUser.handle || '').toLowerCase()) {
+            return true;
+          }
+          return false;
+        });
+
+        if (duplicate) {
+          status.textContent = 'That email or handle is already in use.';
+          status.className = 'status error';
+          return;
+        }
+
+        const updatedUser = {
+          ...users[userIndex],
+          name,
+          handle,
+          email,
+          password
+        };
+
+        users[userIndex] = updatedUser;
+        setCookie('duckcialUsers', JSON.stringify(users));
+
+        const currentProfile = {
+          id: updatedUser.id,
+          name: updatedUser.name,
+          handle: updatedUser.handle,
+          email: updatedUser.email,
+          followers: Number(updatedUser.followers || 0)
+        };
+
+        setCookie('duckcialCurrentUser', JSON.stringify(currentProfile));
+        setCookie('duckcialLoggedIn', 'true');
+
+        status.textContent = 'Saved successfully.';
+        status.className = 'status';
+        window.location.href = './index.html';
+      });
+    </script>
+  </body>
+</html>

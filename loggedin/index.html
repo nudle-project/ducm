@@ -763,10 +763,14 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="../firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+    <script src="../firebase-config.js?v=3"></script>
     <script>
       const firebaseState = window.DuckcialFirebase || { ready: false, auth: null, db: null };
       const useFirebase = firebaseState.ready;
+      if (firebaseState.storage) {
+        firebaseState.storage.setMaxUploadRetryTime(30000);
+      }
 
       function getCookie(name) {
         const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
@@ -999,11 +1003,11 @@
         }
       }
 
-      function savePosts(posts) {
+      async function savePosts(posts) {
         setCookie(STORAGE_KEY, JSON.stringify(posts), 365);
-        if (useFirebase && firebaseState.db) {
-          firebaseState.db.collection('meta').doc('feed').set({ posts }, { merge: true })
-            .catch((error) => console.error('Unable to sync feed data to Firebase:', error));
+        if (useFirebase && !isGuest) {
+          if (!firebaseState.db) throw new Error('Firebase Firestore is unavailable.');
+          await firebaseState.db.collection('meta').doc('feed').set({ posts }, { merge: true });
         }
       }
 
@@ -1016,19 +1020,19 @@
         return likes * 2 + videoBoost - dislikes * 2 + freshness;
       }
 
-      function markPostViewed(postId) {
+      async function markPostViewed(postId) {
         const posts = getPosts();
         const post = posts.find((entry) => entry.id === postId);
         if (!post) return;
-        const viewerId = isGuest ? user.email : user.email;
+        const viewerId = user.email;
         const seen = Array.isArray(post.viewedBy) ? post.viewedBy : [];
         if (seen.includes(viewerId)) return;
         post.views = Number(post.views || 0) + 1;
         post.viewedBy = [...seen, viewerId];
-        savePosts(posts);
+        await savePosts(posts);
       }
 
-      function openWatch(postId) {
+      async function openWatch(postId) {
         const post = getPosts().find((entry) => entry.id === postId);
         if (!post) return;
         const content = document.getElementById('watchModalContent');
@@ -1054,7 +1058,11 @@
         byline.textContent = `${post.authorHandle || post.uploader || '@anonymous'} · ${formatNumber(post.likes || 0)} likes`;
         content.append(caption, byline);
         document.getElementById('watchModal').classList.remove('hidden');
-        markPostViewed(postId);
+        try {
+          await markPostViewed(postId);
+        } catch (error) {
+          updateStatus(`View could not be saved online: ${error.message}`, 'error');
+        }
         renderPosts();
         if (post.type === 'video') media.play().catch(() => {});
       }
@@ -1229,7 +1237,7 @@
         });
 
         document.querySelectorAll('.watch-btn').forEach((button) => {
-          button.addEventListener('click', (event) => {
+          button.addEventListener('click', async (event) => {
             event.stopPropagation();
             openWatch(button.dataset.postId);
           });
@@ -1245,31 +1253,31 @@
 
         const reactionButtons = document.querySelectorAll('.reaction-btn');
         reactionButtons.forEach((button) => {
-          button.addEventListener('click', (event) => {
+          button.addEventListener('click', async (event) => {
             event.stopPropagation();
             const action = button.dataset.action;
             const postId = button.dataset.postId;
-            updateReaction(postId, action);
+            await updateReaction(postId, action);
           });
         });
 
         const commentButtons = document.querySelectorAll('.comment-form button');
         commentButtons.forEach((button) => {
-          button.addEventListener('click', () => {
+          button.addEventListener('click', async () => {
             const postId = button.dataset.postId;
             const input = document.querySelector(`.comment-form input[data-post-id="${postId}"]`);
             if (input) {
-              addComment(postId, input.value);
+              await addComment(postId, input.value);
             }
           });
         });
 
         const commentInputs = document.querySelectorAll('.comment-form input');
         commentInputs.forEach((input) => {
-          input.addEventListener('keydown', (event) => {
+          input.addEventListener('keydown', async (event) => {
             if (event.key === 'Enter') {
               const postId = input.dataset.postId;
-              addComment(postId, input.value);
+              await addComment(postId, input.value);
             }
           });
         });
@@ -1277,7 +1285,7 @@
         observeViews();
       }
 
-      function updateReaction(postId, action) {
+      async function updateReaction(postId, action) {
         if (isGuest) return;
         const posts = getPosts();
         const post = posts.find((entry) => entry.id === postId);
@@ -1305,11 +1313,15 @@
         post.reactedBy = post.reactedBy || {};
         post.reactedBy[user.email] = action;
 
-        savePosts(posts);
+        try {
+          await savePosts(posts);
+        } catch (error) {
+          updateStatus(`Reaction could not be saved online: ${error.message}`, 'error');
+        }
         renderPosts();
       }
 
-      function addComment(postId, text) {
+      async function addComment(postId, text) {
         const inputValue = (text || '').trim();
         if (!inputValue) return;
 
@@ -1327,7 +1339,11 @@
           createdAt: new Date().toISOString()
         });
 
-        savePosts(posts);
+        try {
+          await savePosts(posts);
+        } catch (error) {
+          updateStatus(`Comment could not be saved online: ${error.message}`, 'error');
+        }
         renderPosts();
       }
 
@@ -1347,6 +1363,7 @@
           return;
         }
 
+        let uploadedStorageRef = null;
         try {
           const result = await getMediaDimensions(file);
           const ratio = result.width / result.height;
@@ -1359,11 +1376,23 @@
             return;
           }
 
-          const url = URL.createObjectURL(file);
+          const postId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
+          let url;
+          if (useFirebase) {
+            if (!firebaseState.storage) {
+              throw new Error('Firebase Storage is unavailable. Enable Cloud Storage and verify the project bucket and billing settings.');
+            }
+            uploadedStorageRef = firebaseState.storage.ref().child(`posts/${user.id}/${postId}/${encodeURIComponent(file.name)}`);
+            const upload = await uploadedStorageRef.put(file, { contentType: file.type });
+            url = await upload.ref.getDownloadURL();
+          } else {
+            url = URL.createObjectURL(file);
+          }
+
           const posts = getPosts();
           const uploader = user.handle || '@duckxcialmedia';
           const entry = {
-            id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+            id: postId,
             name: file.name,
             type,
             url,
@@ -1383,11 +1412,14 @@
           };
 
           posts.unshift(entry);
-          savePosts(posts);
+          await savePosts(posts);
           renderPosts();
-          updateStatus('Upload successful. Your 9:16 media is now visible to all Duckcial users.', 'success');
+          updateStatus(useFirebase ? 'Upload saved online and shared with Duckcial users.' : 'Upload saved in this browser only.', 'success');
           event.target.value = '';
         } catch (error) {
+          if (uploadedStorageRef) {
+            await uploadedStorageRef.delete().catch(() => {});
+          }
           updateStatus(error.message || 'Something went wrong while uploading.', 'error');
           event.target.value = '';
         }

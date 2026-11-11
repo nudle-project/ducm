@@ -21,6 +21,7 @@
       }
 
       * { box-sizing: border-box; }
+      .hidden { display: none !important; }
 
       html { scroll-behavior: smooth; }
 
@@ -158,6 +159,38 @@
         margin-top: 1rem;
       }
 
+      .feed-nav {
+        display: grid;
+        gap: 0.4rem;
+        margin-top: 1.25rem;
+      }
+
+      .feed-nav button,
+      .analytics-link {
+        width: 100%;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--text);
+        padding: 0.7rem 0.75rem;
+        text-align: left;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
+      .feed-nav button[aria-pressed="true"],
+      .feed-nav button:hover,
+      .analytics-link:hover {
+        background: var(--primary-soft);
+        color: var(--primary-deep);
+      }
+
+      .analytics-link {
+        display: block;
+        margin-top: 0.4rem;
+      }
+
       .stat-item {
         background: var(--panel-soft);
         border: 1px solid var(--border);
@@ -245,6 +278,35 @@
         gap: 1rem;
       }
 
+      .feed-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.8rem;
+        margin: 0 0 0.8rem;
+      }
+
+      .feed-toolbar h2 {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+
+      .sort-tabs { display: flex; gap: 0.4rem; }
+      .sort-tabs button {
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: white;
+        padding: 0.55rem 0.7rem;
+        color: var(--text);
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .sort-tabs button[aria-pressed="true"] {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+        color: var(--primary-deep);
+      }
+
       .post-card {
         overflow: hidden;
         scroll-snap-align: start;
@@ -262,6 +324,21 @@
         background: #e5e7eb;
         overflow: hidden;
         border-bottom: 1px solid var(--border);
+        position: relative;
+      }
+
+      .watch-btn {
+        position: absolute;
+        left: 50%;
+        bottom: 0.8rem;
+        transform: translateX(-50%);
+        border: 1px solid rgba(255,255,255,0.8);
+        border-radius: 999px;
+        background: rgba(17,24,39,0.82);
+        color: white;
+        padding: 0.6rem 1rem;
+        font-weight: 700;
+        cursor: pointer;
       }
 
       .media-frame img,
@@ -429,6 +506,51 @@
         position: relative;
       }
 
+      .watch-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: grid;
+        place-items: center;
+        padding: 1rem;
+        background: rgba(17, 24, 39, 0.78);
+      }
+      .watch-modal.hidden { display: none; }
+      .watch-modal-card {
+        position: relative;
+        width: min(460px, 100%);
+        max-height: min(90vh, 900px);
+        overflow: auto;
+        background: white;
+        border-radius: 16px;
+        padding: 0.75rem;
+      }
+      .watch-modal-media {
+        width: 100%;
+        max-height: 76vh;
+        aspect-ratio: 9 / 16;
+        object-fit: contain;
+        display: block;
+        background: #111827;
+        border-radius: 10px;
+      }
+      .watch-modal-caption { margin: 0.75rem 0 0.25rem; font-weight: 700; }
+      .watch-modal-byline { margin: 0; color: var(--muted); font-size: 0.85rem; }
+      .close-watch {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        z-index: 1;
+        border: 0;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        background: rgba(17,24,39,0.8);
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+      }
+
       .close-profile {
         position: absolute;
         top: 0.8rem;
@@ -552,6 +674,7 @@
           <button class="secondary-btn" id="uploadTrigger" type="button">Upload</button>
           <button class="secondary-btn" id="settingsButton" type="button">Settings</button>
           <button class="logout-btn" id="logoutButton" type="button">Log out</button>
+          <a class="secondary-btn hidden" id="guestAuthLink" href="../loggedout/login.html">Log in / Sign up</a>
         </div>
       </header>
 
@@ -579,6 +702,12 @@
               <span>Views</span>
             </div>
           </div>
+          <nav class="feed-nav" aria-label="Filter posts">
+            <button type="button" data-feed-filter="image" aria-pressed="false">Images</button>
+            <button type="button" data-feed-filter="video" aria-pressed="false">Videos</button>
+            <button type="button" data-feed-filter="all" aria-pressed="true">All posts</button>
+          </nav>
+          <a class="analytics-link" id="analyticsLink" href="./analytics.html">Account analytics</a>
         </aside>
 
         <main>
@@ -596,9 +725,23 @@
           </section>
 
           <section class="feed-scroller">
+            <div class="feed-toolbar">
+              <h2 id="feedHeading">For you</h2>
+              <div class="sort-tabs" aria-label="Feed order">
+                <button type="button" data-sort="recommended" aria-pressed="true">For you</button>
+                <button type="button" data-sort="latest" aria-pressed="false">Latest</button>
+              </div>
+            </div>
             <div class="feed" id="feed"></div>
           </section>
         </main>
+      </div>
+    </div>
+
+    <div class="watch-modal hidden" id="watchModal" role="dialog" aria-modal="true" aria-label="Watch post">
+      <div class="watch-modal-card">
+        <button class="close-watch" id="closeWatchModal" type="button" aria-label="Close">×</button>
+        <div id="watchModalContent"></div>
       </div>
     </div>
 
@@ -642,19 +785,29 @@
       const STORAGE_KEY = 'duckcialSharedPosts';
       const currentUserData = getCookie('duckcialCurrentUser');
       const isLoggedIn = getCookie('duckcialLoggedIn') === 'true';
+      const isGuest = new URLSearchParams(window.location.search).get('guest') === '1';
 
-      if (!isLoggedIn || !currentUserData) {
+      if (!isGuest && (!isLoggedIn || !currentUserData)) {
         window.location.replace('../loggedout/index.html');
       }
 
       async function loadFirebaseState() {
         if (!useFirebase || !firebaseState.db) return;
-        const usersDoc = await firebaseState.db.collection('meta').doc('users').get();
-        const postsDoc = await firebaseState.db.collection('meta').doc('feed').get();
-        if (usersDoc.exists) {
-          const users = Array.isArray(usersDoc.data().users) ? usersDoc.data().users : [];
-          setCookie('duckcialUsers', JSON.stringify(users), 365);
+        try {
+          const usersDoc = await firebaseState.db.collection('meta').doc('users').get();
+          if (usersDoc.exists) {
+            const users = Array.isArray(usersDoc.data().users) ? usersDoc.data().users : [];
+            setCookie('duckcialUsers', JSON.stringify(users), 365);
+          }
+        } catch (error) {
+          console.warn('Private profile metadata is unavailable:', error);
         }
+        await loadFirebasePosts();
+      }
+
+      async function loadFirebasePosts() {
+        if (!useFirebase || !firebaseState.db) return;
+        const postsDoc = await firebaseState.db.collection('meta').doc('feed').get();
         if (postsDoc.exists) {
           const posts = Array.isArray(postsDoc.data().posts) ? postsDoc.data().posts : [];
           setCookie(STORAGE_KEY, JSON.stringify(posts), 365);
@@ -673,7 +826,8 @@
       function saveUsers(users) {
         setCookie('duckcialUsers', JSON.stringify(users), 365);
         if (useFirebase && firebaseState.db) {
-          firebaseState.db.collection('meta').doc('users').set({ users }, { merge: true });
+          firebaseState.db.collection('meta').doc('users').set({ users }, { merge: true })
+            .catch((error) => console.error('Unable to sync user data to Firebase:', error));
         }
       }
 
@@ -695,16 +849,44 @@
         return updated;
       }
 
-      const user = syncCurrentUser();
+      const user = isGuest ? {
+        id: 'guest',
+        name: 'Guest',
+        handle: 'Guest',
+        email: getGuestId(),
+        followers: 0
+      } : syncCurrentUser();
+      let activeFeedFilter = 'all';
+      let activeSort = 'recommended';
       const handle = user.handle || '@duckxcialmedia';
       document.querySelector('h1').textContent = 'Welcome back, ' + handle;
       document.getElementById('profileName').textContent = user.name || 'Duckcial User';
       document.getElementById('profileHandle').textContent = handle;
+      if (isGuest) {
+        document.querySelector('h1').textContent = 'Browsing Duckcial Media';
+        document.getElementById('profileName').textContent = 'Guest browsing';
+        document.getElementById('profileHandle').textContent = 'Sign in to join the community';
+        document.getElementById('uploadTrigger').classList.add('hidden');
+        document.getElementById('settingsButton').classList.add('hidden');
+        document.getElementById('logoutButton').classList.add('hidden');
+        document.getElementById('guestAuthLink').classList.remove('hidden');
+        document.getElementById('analyticsLink').classList.add('hidden');
+        document.querySelector('.composer').classList.add('hidden');
+      }
 
       const uploadTrigger = document.getElementById('uploadTrigger');
       const uploadInput = document.getElementById('mediaUpload');
       const uploadStatus = document.getElementById('uploadStatus');
       const feed = document.getElementById('feed');
+
+      function getGuestId() {
+        let guestId = sessionStorage.getItem('duckcialGuestId');
+        if (!guestId) {
+          guestId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+          sessionStorage.setItem('duckcialGuestId', guestId);
+        }
+        return `guest:${guestId}`;
+      }
 
       function getFollowedUsers() {
         try {
@@ -744,7 +926,10 @@
         handleNode.textContent = profileUser.handle || '@duckxcialmedia';
         statsNode.textContent = `${formatNumber(Number(profileUser.followers || 0))} followers`;
 
-        if (isCurrentUser) {
+        if (isGuest) {
+          followButton.textContent = 'Sign in to follow';
+          followButton.disabled = true;
+        } else if (isCurrentUser) {
           followButton.textContent = 'Your profile';
           followButton.disabled = true;
         } else if (followed) {
@@ -817,8 +1002,68 @@
       function savePosts(posts) {
         setCookie(STORAGE_KEY, JSON.stringify(posts), 365);
         if (useFirebase && firebaseState.db) {
-          firebaseState.db.collection('meta').doc('feed').set({ posts }, { merge: true });
+          firebaseState.db.collection('meta').doc('feed').set({ posts }, { merge: true })
+            .catch((error) => console.error('Unable to sync feed data to Firebase:', error));
         }
+      }
+
+      function recommendationScore(post) {
+        const likes = Number(post.likes || 0);
+        const dislikes = Number(post.dislikes || 0);
+        const ageHours = Math.max(0, (Date.now() - new Date(post.createdAt).getTime()) / 3600000);
+        const freshness = 1 / (1 + ageHours / 48);
+        const videoBoost = post.type === 'video' ? likes * 2 : 0;
+        return likes * 2 + videoBoost - dislikes * 2 + freshness;
+      }
+
+      function markPostViewed(postId) {
+        const posts = getPosts();
+        const post = posts.find((entry) => entry.id === postId);
+        if (!post) return;
+        const viewerId = isGuest ? user.email : user.email;
+        const seen = Array.isArray(post.viewedBy) ? post.viewedBy : [];
+        if (seen.includes(viewerId)) return;
+        post.views = Number(post.views || 0) + 1;
+        post.viewedBy = [...seen, viewerId];
+        savePosts(posts);
+      }
+
+      function openWatch(postId) {
+        const post = getPosts().find((entry) => entry.id === postId);
+        if (!post) return;
+        const content = document.getElementById('watchModalContent');
+        content.innerHTML = '';
+        let media;
+        if (post.type === 'video') {
+          media = document.createElement('video');
+          media.controls = true;
+          media.playsInline = true;
+          media.autoplay = true;
+        } else {
+          media = document.createElement('img');
+          media.alt = post.name || 'Shared image';
+        }
+        media.className = 'watch-modal-media';
+        media.src = post.url;
+        content.appendChild(media);
+        const caption = document.createElement('p');
+        caption.className = 'watch-modal-caption';
+        caption.textContent = post.name || 'Shared post';
+        const byline = document.createElement('p');
+        byline.className = 'watch-modal-byline';
+        byline.textContent = `${post.authorHandle || post.uploader || '@anonymous'} · ${formatNumber(post.likes || 0)} likes`;
+        content.append(caption, byline);
+        document.getElementById('watchModal').classList.remove('hidden');
+        markPostViewed(postId);
+        renderPosts();
+        if (post.type === 'video') media.play().catch(() => {});
+      }
+
+      function closeWatch() {
+        const modal = document.getElementById('watchModal');
+        const video = modal.querySelector('video');
+        if (video) video.pause();
+        modal.classList.add('hidden');
       }
 
       function updateStatus(message, type = '') {
@@ -882,9 +1127,14 @@
       }
 
       function renderPosts() {
-        const posts = getPosts();
+        let posts = getPosts().filter((post) => activeFeedFilter === 'all' || post.type === activeFeedFilter);
+        if (activeSort === 'recommended') {
+          posts = [...posts].sort((a, b) => recommendationScore(b) - recommendationScore(a));
+        } else {
+          posts = [...posts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        }
         feed.innerHTML = '';
-        renderProfileStats(posts);
+        renderProfileStats(getPosts());
 
         if (!posts.length) {
           feed.innerHTML = '<div class="empty-state">No uploads yet. Add a 9:16 image or video to get started.</div>';
@@ -914,6 +1164,13 @@
             img.alt = 'Uploaded media';
             mediaWrapper.appendChild(img);
           }
+            const watchButton = document.createElement('button');
+            watchButton.type = 'button';
+            watchButton.className = 'watch-btn';
+            watchButton.dataset.action = 'watch';
+            watchButton.dataset.postId = post.id;
+            watchButton.textContent = post.type === 'video' ? 'Watch video' : 'View image';
+            mediaWrapper.appendChild(watchButton);
 
           const meta = document.createElement('div');
           meta.className = 'post-meta';
@@ -927,15 +1184,15 @@
             <span class="pill">9:16</span>
           `;
 
-          const currentVote = (post.reactedBy && post.reactedBy[user.email]) || null;
+          const currentVote = !isGuest && post.reactedBy && post.reactedBy[user.email] || null;
           const actions = document.createElement('div');
           actions.className = 'post-actions';
           actions.innerHTML = `
-            <button type="button" class="reaction-btn ${currentVote === 'like' ? 'selected' : ''}" data-action="like" data-post-id="${post.id}" aria-pressed="${currentVote === 'like'}">
+            <button type="button" class="reaction-btn ${currentVote === 'like' ? 'selected' : ''}" data-action="like" data-post-id="${post.id}" aria-pressed="${currentVote === 'like'}" ${isGuest ? 'disabled title="Sign in to react"' : ''}>
               <span>👍</span>
               <span>${formatNumber(post.likes || 0)}</span>
             </button>
-            <button type="button" class="reaction-btn dislike ${currentVote === 'dislike' ? 'selected' : ''}" data-action="dislike" data-post-id="${post.id}" aria-pressed="${currentVote === 'dislike'}">
+            <button type="button" class="reaction-btn dislike ${currentVote === 'dislike' ? 'selected' : ''}" data-action="dislike" data-post-id="${post.id}" aria-pressed="${currentVote === 'dislike'}" ${isGuest ? 'disabled title="Sign in to react"' : ''}>
               <span>👎</span>
               <span>${formatNumber(post.dislikes || 0)}</span>
             </button>
@@ -957,8 +1214,8 @@
           const addCommentRow = document.createElement('div');
           addCommentRow.className = 'comment-form';
           addCommentRow.innerHTML = `
-            <input type="text" placeholder="Add a comment" maxlength="120" data-post-id="${post.id}" />
-            <button type="button" data-post-id="${post.id}">Post</button>
+            <input type="text" placeholder="${isGuest ? 'Sign in to comment' : 'Add a comment'}" maxlength="120" data-post-id="${post.id}" ${isGuest ? 'disabled' : ''} />
+            <button type="button" data-post-id="${post.id}" ${isGuest ? 'disabled title="Sign in to comment"' : ''}>Post</button>
           `;
 
           commentsWrap.appendChild(commentList);
@@ -971,18 +1228,10 @@
           feed.appendChild(card);
         });
 
-        const postCards = document.querySelectorAll('.post-card');
-        postCards.forEach((card) => {
-          card.addEventListener('click', (event) => {
-            if (event.target.closest('.reaction-btn') || event.target.closest('.creator-link') || event.target.closest('.comment-form') || event.target.closest('.comment-form button') || event.target.closest('.comment-form input')) {
-              return;
-            }
-
-            const allCards = [...document.querySelectorAll('.post-card')];
-            const currentId = card.dataset.postId;
-            const candidates = allCards.filter((entry) => entry.dataset.postId !== currentId);
-            const target = candidates[Math.floor(Math.random() * candidates.length)] || card;
-            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.querySelectorAll('.watch-btn').forEach((button) => {
+          button.addEventListener('click', (event) => {
+            event.stopPropagation();
+            openWatch(button.dataset.postId);
           });
         });
 
@@ -1029,6 +1278,7 @@
       }
 
       function updateReaction(postId, action) {
+        if (isGuest) return;
         const posts = getPosts();
         const post = posts.find((entry) => entry.id === postId);
         if (!post) return;
@@ -1072,6 +1322,8 @@
           id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
           text: inputValue,
           author: user.handle || '@duckxcialmedia',
+          authorEmail: user.email,
+          authorHandle: user.handle,
           createdAt: new Date().toISOString()
         });
 
@@ -1080,35 +1332,11 @@
       }
 
       function observeViews() {
-        const cards = document.querySelectorAll('.post-card');
-        if (!cards.length) return;
-
-        const viewObserver = new IntersectionObserver((entries) => {
-          entries.forEach((entry) => {
-            if (!entry.isIntersecting) return;
-            const postId = entry.target.dataset.postId;
-            const posts = getPosts();
-            const post = posts.find((item) => item.id === postId);
-            if (!post) return;
-
-            const seen = Array.isArray(post.viewedBy) ? post.viewedBy : [];
-            if (seen.includes(user.email)) {
-              viewObserver.unobserve(entry.target);
-              return;
-            }
-
-            post.views = Number(post.views || 0) + 1;
-            post.viewedBy = [...seen, user.email];
-            savePosts(posts);
-            renderPosts();
-            viewObserver.unobserve(entry.target);
-          });
-        }, { threshold: 0.55 });
-
-        cards.forEach((card) => viewObserver.observe(card));
+        return;
       }
 
       async function handleUpload(event) {
+        if (isGuest) return;
         const file = event.target.files && event.target.files[0];
         if (!file) return;
 
@@ -1173,6 +1401,7 @@
       });
 
       document.getElementById('logoutButton').addEventListener('click', () => {
+        if (useFirebase && firebaseState.auth) firebaseState.auth.signOut();
         deleteCookie('duckcialLoggedIn');
         deleteCookie('duckcialCurrentUser');
         deleteCookie('duckcialUserCookie');
@@ -1181,13 +1410,36 @@
       });
 
       document.getElementById('closeProfileModal').addEventListener('click', closeProfile);
+      document.getElementById('closeWatchModal').addEventListener('click', closeWatch);
+      document.getElementById('watchModal').addEventListener('click', (event) => {
+        if (event.target.id === 'watchModal') closeWatch();
+      });
+      document.querySelectorAll('[data-feed-filter]').forEach((button) => {
+        button.addEventListener('click', () => {
+          activeFeedFilter = button.dataset.feedFilter;
+          document.querySelectorAll('[data-feed-filter]').forEach((tab) => tab.setAttribute('aria-pressed', String(tab === button)));
+          document.getElementById('feedHeading').textContent = activeFeedFilter === 'all' ? (activeSort === 'recommended' ? 'For you' : 'Latest') : `${activeFeedFilter === 'image' ? 'Images' : 'Videos'} · ${activeSort === 'recommended' ? 'For you' : 'Latest'}`;
+          renderPosts();
+        });
+      });
+      document.querySelectorAll('[data-sort]').forEach((button) => {
+        button.addEventListener('click', () => {
+          activeSort = button.dataset.sort;
+          document.querySelectorAll('[data-sort]').forEach((tab) => tab.setAttribute('aria-pressed', String(tab === button)));
+          document.getElementById('feedHeading').textContent = activeSort === 'recommended' ? 'For you' : 'Latest';
+          renderPosts();
+        });
+      });
       document.getElementById('profileModal').addEventListener('click', (event) => {
         if (event.target.id === 'profileModal') {
           closeProfile();
         }
       });
 
-      if (useFirebase && firebaseState.auth) {
+      if (isGuest) {
+        loadFirebasePosts().catch((error) => console.error('Unable to load public feed:', error))
+          .finally(renderPosts);
+      } else if (useFirebase && firebaseState.auth) {
         firebaseState.auth.onAuthStateChanged((currentUser) => {
           if (!currentUser) {
             window.location.replace('../loggedout/index.html');

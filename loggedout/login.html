@@ -134,6 +134,10 @@
       <p class="alt">No account yet? <a href="./signup.html">Sign up</a></p>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="../firebase-config.js"></script>
     <script>
       function getCookie(name) {
         const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
@@ -165,15 +169,55 @@
         }
       }
 
-      if (getCookie('duckcialLoggedIn') === 'true') {
+      const firebaseState = window.DuckcialFirebase || { ready: false, auth: null, db: null };
+      const auth = firebaseState.auth;
+      const db = firebaseState.db;
+
+      if (firebaseState.ready) {
+        auth.onAuthStateChanged((user) => {
+          if (user) {
+            window.location.href = '../loggedin/index.html';
+          }
+        });
+      } else if (getCookie('duckcialLoggedIn') === 'true') {
         window.location.href = '../loggedin/index.html';
       }
 
-      document.getElementById('loginForm').addEventListener('submit', (event) => {
+      document.getElementById('loginForm').addEventListener('submit', async (event) => {
         event.preventDefault();
         const email = document.getElementById('email').value.trim().toLowerCase();
         const password = document.getElementById('password').value.trim();
         const status = document.getElementById('status');
+
+        if (firebaseState.ready) {
+          try {
+            const credential = await auth.signInWithEmailAndPassword(email, password);
+            const userDoc = await db.collection('users').doc(credential.user.uid).get();
+            const profile = userDoc.exists ? userDoc.data() : { id: credential.user.uid, name: credential.user.displayName || 'Duckcial User', handle: '@duckxcialmedia', email: credential.user.email, followers: 0 };
+
+            clearAuthCookies();
+            setCookie('duckcialLoggedIn', 'true', 30);
+            setCookie('duckcialCurrentUser', JSON.stringify({
+              id: credential.user.uid,
+              name: profile.name || 'Duckcial User',
+              handle: profile.handle || '@duckxcialmedia',
+              email: credential.user.email,
+              followers: Number(profile.followers || 0)
+            }), 30);
+            setCookie('duckcialUserCookie', JSON.stringify({
+              id: credential.user.uid,
+              name: profile.name || 'Duckcial User',
+              handle: profile.handle || '@duckxcialmedia',
+              email: credential.user.email,
+              followers: Number(profile.followers || 0)
+            }), 30);
+
+            window.location.replace('../loggedin/index.html');
+          } catch (error) {
+            status.textContent = error.message || 'Incorrect email or password.';
+          }
+          return;
+        }
 
         const users = getUsers();
         const user = users.find((entry) => entry && entry.email && entry.email.toLowerCase() === email && entry.password === password);

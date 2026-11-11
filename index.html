@@ -53,14 +53,26 @@
       <p>Redirecting you to the right experience.</p>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="./firebase-config.js"></script>
     <script>
+      const firebaseState = window.DuckcialFirebase || { ready: false, auth: null };
+
       function getCookie(name) {
         const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
         return match ? decodeURIComponent(match[1]) : null;
       }
 
       const isLoggedIn = getCookie('duckcialLoggedIn') === 'true';
-      window.location.replace(isLoggedIn ? 'loggedin/index.html' : 'loggedout/index.html');
+
+      if (firebaseState.ready && firebaseState.auth) {
+        firebaseState.auth.onAuthStateChanged((user) => {
+          window.location.replace(user ? 'loggedin/index.html' : 'loggedout/index.html');
+        });
+      } else {
+        window.location.replace(isLoggedIn ? 'loggedin/index.html' : 'loggedout/index.html');
+      }
     </script>
   </body>
 </html>

@@ -617,7 +617,14 @@
       </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="../firebase-config.js"></script>
     <script>
+      const firebaseState = window.DuckcialFirebase || { ready: false, auth: null, db: null };
+      const useFirebase = firebaseState.ready;
+
       function getCookie(name) {
         const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
         return match ? decodeURIComponent(match[1]) : null;
@@ -640,6 +647,20 @@
         window.location.replace('../loggedout/index.html');
       }
 
+      async function loadFirebaseState() {
+        if (!useFirebase || !firebaseState.db) return;
+        const usersDoc = await firebaseState.db.collection('meta').doc('users').get();
+        const postsDoc = await firebaseState.db.collection('meta').doc('feed').get();
+        if (usersDoc.exists) {
+          const users = Array.isArray(usersDoc.data().users) ? usersDoc.data().users : [];
+          setCookie('duckcialUsers', JSON.stringify(users), 365);
+        }
+        if (postsDoc.exists) {
+          const posts = Array.isArray(postsDoc.data().posts) ? postsDoc.data().posts : [];
+          setCookie(STORAGE_KEY, JSON.stringify(posts), 365);
+        }
+      }
+
       function getUsers() {
         try {
           const parsed = JSON.parse(getCookie('duckcialUsers') || '[]');
@@ -651,6 +672,9 @@
 
       function saveUsers(users) {
         setCookie('duckcialUsers', JSON.stringify(users), 365);
+        if (useFirebase && firebaseState.db) {
+          firebaseState.db.collection('meta').doc('users').set({ users }, { merge: true });
+        }
       }
 
       function syncCurrentUser() {
@@ -792,6 +816,9 @@
 
       function savePosts(posts) {
         setCookie(STORAGE_KEY, JSON.stringify(posts), 365);
+        if (useFirebase && firebaseState.db) {
+          firebaseState.db.collection('meta').doc('feed').set({ posts }, { merge: true });
+        }
       }
 
       function updateStatus(message, type = '') {
@@ -1160,7 +1187,17 @@
         }
       });
 
-      renderPosts();
+      if (useFirebase && firebaseState.auth) {
+        firebaseState.auth.onAuthStateChanged((currentUser) => {
+          if (!currentUser) {
+            window.location.replace('../loggedout/index.html');
+            return;
+          }
+          loadFirebaseState().finally(() => renderPosts());
+        });
+      } else {
+        renderPosts();
+      }
     </script>
   </body>
 </html>

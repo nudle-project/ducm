@@ -144,6 +144,10 @@
       <p class="alt">Already have an account? <a href="./login.html">Log in</a></p>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="../firebase-config.js"></script>
     <script>
       function getCookie(name) {
         const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
@@ -179,11 +183,21 @@
         setCookie('duckcialUsers', JSON.stringify(users), 365);
       }
 
-      if (getCookie('duckcialLoggedIn') === 'true') {
+      const firebaseState = window.DuckcialFirebase || { ready: false, auth: null, db: null };
+      const auth = firebaseState.auth;
+      const db = firebaseState.db;
+
+      if (firebaseState.ready) {
+        auth.onAuthStateChanged((user) => {
+          if (user) {
+            window.location.href = '../loggedin/index.html';
+          }
+        });
+      } else if (getCookie('duckcialLoggedIn') === 'true') {
         window.location.href = '../loggedin/index.html';
       }
 
-      document.getElementById('signupForm').addEventListener('submit', (event) => {
+      document.getElementById('signupForm').addEventListener('submit', async (event) => {
         event.preventDefault();
         const name = document.getElementById('name').value.trim();
         let handle = document.getElementById('handle').value.trim();
@@ -197,6 +211,42 @@
         }
 
         handle = handle.startsWith('@') ? handle : '@' + handle.replace(/^@+/, '');
+
+        if (firebaseState.ready) {
+          try {
+            const credential = await auth.createUserWithEmailAndPassword(email, password);
+            await db.collection('users').doc(credential.user.uid).set({
+              id: credential.user.uid,
+              name,
+              handle,
+              email,
+              followers: 0,
+              createdAt: new Date().toISOString()
+            });
+
+            clearAuthCookies();
+            setCookie('duckcialLoggedIn', 'true', 30);
+            setCookie('duckcialCurrentUser', JSON.stringify({
+              id: credential.user.uid,
+              name,
+              handle,
+              email,
+              followers: 0
+            }), 30);
+            setCookie('duckcialUserCookie', JSON.stringify({
+              id: credential.user.uid,
+              name,
+              handle,
+              email,
+              followers: 0
+            }), 30);
+
+            window.location.replace('../loggedin/index.html');
+          } catch (error) {
+            status.textContent = error.message || 'Unable to create account.';
+          }
+          return;
+        }
 
         const users = getUsers();
         const duplicate = users.some((user) => {

@@ -180,7 +180,14 @@
       </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="../firebase-config.js"></script>
     <script>
+      const firebaseState = window.DuckcialFirebase || { ready: false, auth: null, db: null };
+      const useFirebase = firebaseState.ready;
+
       function getCookie(name) {
         const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
         return match ? decodeURIComponent(match[1]) : null;
@@ -203,6 +210,13 @@
         }
       }
 
+      function saveUsers(users) {
+        setCookie('duckcialUsers', JSON.stringify(users), 365);
+        if (useFirebase && firebaseState.db) {
+          firebaseState.db.collection('meta').doc('users').set({ users }, { merge: true });
+        }
+      }
+
       function getPosts() {
         try {
           const posts = JSON.parse(getCookie('duckcialSharedPosts') || '[]');
@@ -214,6 +228,9 @@
 
       function savePosts(posts) {
         setCookie('duckcialSharedPosts', JSON.stringify(posts), 365);
+        if (useFirebase && firebaseState.db) {
+          firebaseState.db.collection('meta').doc('feed').set({ posts }, { merge: true });
+        }
       }
 
       const currentUser = JSON.parse(getCookie('duckcialCurrentUser') || '{}');
@@ -279,15 +296,53 @@
         savePosts(anonymizedPosts);
       }
 
-      document.getElementById('deleteAccountButton').addEventListener('click', () => {
+      document.getElementById('deleteAccountButton').addEventListener('click', async () => {
         const confirmed = window.confirm('Delete your account? Your posts and comments will stay on Duckcial, but they will be anonymized.');
         if (!confirmed) return;
 
         const users = getUsers();
         const remainingUsers = users.filter((user) => user.email.toLowerCase() !== currentUser.email.toLowerCase());
-        setCookie('duckcialUsers', JSON.stringify(remainingUsers));
+        saveUsers(remainingUsers);
 
         anonymizeUserContent(currentUser.email, currentUser.handle || '@duckxcialmedia');
+
+        if (useFirebase && firebaseState.auth && firebaseState.auth.currentUser) {
+          const userId = firebaseState.auth.currentUser.uid;
+          const userDoc = firebaseState.db.collection('users').doc(userId);
+          await userDoc.delete().catch(() => {});
+          const feedSnapshot = await firebaseState.db.collection('meta').doc('feed').get();
+          if (feedSnapshot.exists) {
+            const feedPosts = Array.isArray(feedSnapshot.data().posts) ? feedSnapshot.data().posts : [];
+            const anonymized = feedPosts.map((post) => {
+              const isOwner = (post.authorEmail || '').toLowerCase() === currentUser.email.toLowerCase() || (post.authorHandle || '').toLowerCase() === (currentUser.handle || '').toLowerCase();
+              const nextPost = { ...post };
+              if (isOwner) {
+                nextPost.authorName = 'Anonymous';
+                nextPost.authorHandle = '@anonymous';
+                nextPost.authorEmail = 'anonymous@deleted';
+                nextPost.uploader = '@anonymous';
+                nextPost.name = 'Anonymous post';
+              }
+              if (Array.isArray(nextPost.comments)) {
+                nextPost.comments = nextPost.comments.map((comment) => {
+                  const isCommentOwner = (comment.authorEmail || '').toLowerCase() === currentUser.email.toLowerCase() || (comment.authorHandle || '').toLowerCase() === (currentUser.handle || '').toLowerCase() || (comment.author || '').toLowerCase() === (currentUser.handle || '').toLowerCase();
+                  if (isCommentOwner) {
+                    return {
+                      ...comment,
+                      author: 'Anonymous',
+                      authorEmail: 'anonymous@deleted',
+                      authorHandle: '@anonymous'
+                    };
+                  }
+                  return comment;
+                });
+              }
+              return nextPost;
+            });
+            await firebaseState.db.collection('meta').doc('feed').set({ posts: anonymized }, { merge: true });
+          }
+          await firebaseState.auth.currentUser.delete().catch(() => {});
+        }
 
         deleteCookie('duckcialLoggedIn');
         deleteCookie('duckcialCurrentUser');
